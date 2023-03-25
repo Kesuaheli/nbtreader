@@ -1,0 +1,7 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Use "nbt" diff for minecrafts binary files
+*.nbt binary diff=nbt
+*.dat binary diff=nbt
+*.schem binary diff=nbt
