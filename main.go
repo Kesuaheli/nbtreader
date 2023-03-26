@@ -1,11 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
+	"nbtreader/nbt"
 	"os"
 	"path/filepath"
+)
+
+type Compression int
+
+const (
+	NONE Compression = iota
+	GZIP
+	ZIP
+	TAR
 )
 
 func main() {
@@ -21,19 +32,22 @@ func main() {
 	}
 	defer file.Close()
 
-	gzipReader, err := gzip.NewReader(file)
+	nbtRaw, err := decompress(file)
 	if err != nil {
-		exitUsage(err)
-	}
-	defer gzipReader.Close()
-
-	nbtData, err := io.ReadAll(gzipReader)
-	if err != nil {
+		fmt.Println("Error while reading file:")
 		exitUsage(err)
 	}
 
-	fmt.Println(nbtData)
+	nbtRoot, restData, err := nbt.NewParser(nbtRaw)
+	if err != nil {
+		fmt.Println("Error while parsing data:")
+		exitUsage(err)
+	}
 
+	fmt.Println("{", nbtRoot, "}")
+	if len(restData) > 0 {
+		fmt.Println("WARNING: rest data:", restData)
+	}
 }
 
 // exitUsage prints the error, if any, and the command usage and then
@@ -45,4 +59,44 @@ func exitUsage(err error) {
 	fmt.Printf("%s <file_to_read>\n", filepath.Base(os.Args[0]))
 
 	os.Exit(1)
+}
+
+func decompress(f *os.File) ([]byte, error) {
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	buf := bytes.NewBuffer(b)
+
+	switch getCompressionType(b) {
+	case NONE:
+		return b, nil
+	case GZIP:
+		gz, err := gzip.NewReader(buf)
+		if err != nil {
+			return []byte{}, err
+		}
+		defer gz.Close()
+		return io.ReadAll(gz)
+	case ZIP:
+		return []byte{}, fmt.Errorf("File has ZIP compression: ZIP is not supportet yet!")
+	case TAR:
+		return []byte{}, fmt.Errorf("File has TAR compression: TAR is not supportet yet!")
+	default:
+		return []byte{}, fmt.Errorf("File has unsupported compression!")
+	}
+}
+
+func getCompressionType(b []byte) Compression {
+	switch {
+	case bytes.Equal(b[:3], []byte{0x1f, 0x8b, 0x08}):
+		return GZIP
+	case bytes.Equal(b[:4], []byte{0x50, 0x4b, 0x03, 0x04}):
+		return ZIP
+	case bytes.Equal(b[:4], []byte{0x75, 0x73, 0x74, 0x61}):
+		return TAR
+	default:
+		return NONE
+	}
 }
