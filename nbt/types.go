@@ -559,11 +559,7 @@ func popString(b []byte, n uint16) (string, []byte, error) {
 		return "", b, fmt.Errorf("tried to get %d byte string from %d bytes of data", n, len(b))
 	}
 
-	var value string
-	for i := uint16(0); i < n; i++ {
-		value = value + string(b[i])
-	}
-	return value, b[n:], nil
+	return string(b[:n]), b[n:], nil
 }
 
 func popName(b []byte) (string, []byte, error) {
