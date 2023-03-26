@@ -193,10 +193,10 @@ func (t Long) StringVal() string {
 	return fmt.Sprintf("%dl", t.Value)
 }
 func (t Float) StringVal() string {
-	return fmt.Sprintf("%ff", t.Value)
+	return fmt.Sprintf("%gf", t.Value)
 }
 func (t Double) StringVal() string {
-	return fmt.Sprintf("%fd", t.Value)
+	return fmt.Sprintf("%gd", t.Value)
 }
 func (t ByteArray) StringVal() string {
 	var itemsString string
