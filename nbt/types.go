@@ -1,6 +1,7 @@
 package nbt
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"strings"
@@ -547,11 +548,25 @@ func popLong(b []byte) (int64, []byte, error) {
 }
 
 func popFloat(b []byte) (float32, []byte, error) {
-	return float32(binary.BigEndian.Uint32(b[:4])), b[4:], nil
+	if len(b) < 4 {
+		return 0, b, fmt.Errorf("tried to get float (4 bytes) from %d bytes of data", len(b))
+	}
+	var f float32
+	buf := bytes.NewReader(b[:4])
+	err := binary.Read(buf, binary.BigEndian, &f)
+
+	return f, b[4:], err
 }
 
 func popDouble(b []byte) (float64, []byte, error) {
-	return float64(binary.BigEndian.Uint64(b[:8])), b[8:], nil
+	if len(b) < 8 {
+		return 0, b, fmt.Errorf("tried to get double (8 bytes) from %d bytes of data", len(b))
+	}
+	var f float64
+	buf := bytes.NewReader(b[:8])
+	err := binary.Read(buf, binary.BigEndian, &f)
+
+	return f, b[8:], err
 }
 
 func popString(b []byte, n uint16) (string, []byte, error) {
