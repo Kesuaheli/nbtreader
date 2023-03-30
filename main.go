@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"nbtreader/mca"
 	"nbtreader/nbt"
@@ -41,8 +40,14 @@ func main() {
 		exitUsage(err)
 	}
 
-	if strings.HasSuffix(os.Args[1], ".mca") {
-		region, err := mca.Parse(dataRaw)
+	if match := mca.GetRegex().FindStringSubmatch(os.Args[1]); match != nil {
+		region, err := mca.ParseRegex(match)
+		if err != nil {
+			fmt.Println("Error parsing regex:")
+			exitUsage(err)
+		}
+
+		err = region.ParseData(dataRaw)
 		if err != nil {
 			fmt.Println("Error while parsing region:")
 			exitUsage(err)
