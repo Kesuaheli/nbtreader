@@ -5,8 +5,10 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"nbtreader/nbt"
 	"os"
+
+	"nbtreader/mca"
+	"nbtreader/nbt"
 	"path/filepath"
 )
 
@@ -32,21 +34,36 @@ func main() {
 	}
 	defer file.Close()
 
-	nbtRaw, err := decompress(file)
+	dataRaw, err := decompress(file)
 	if err != nil {
 		fmt.Println("Error while reading file:")
 		exitUsage(err)
 	}
 
-	nbtRoot, restData, err := nbt.NewParser(nbtRaw)
-	if err != nil {
-		fmt.Println("Error while parsing data:")
-		exitUsage(err)
-	}
+	if match := mca.GetRegex().FindStringSubmatch(os.Args[1]); match != nil {
+		region, err := mca.ParseRegex(match)
+		if err != nil {
+			fmt.Println("Error parsing regex:")
+			exitUsage(err)
+		}
 
-	fmt.Println("{", nbtRoot, "}")
-	if len(restData) > 0 {
-		fmt.Println("WARNING: rest data:", restData)
+		err = region.ParseData(dataRaw)
+		if err != nil {
+			fmt.Println("Error while parsing region:")
+			exitUsage(err)
+		}
+		fmt.Println(region)
+	} else {
+		nbtRoot, restData, err := nbt.NewParser(dataRaw)
+		if err != nil {
+			fmt.Println("Error while parsing data:")
+			exitUsage(err)
+		}
+
+		fmt.Println("{", nbtRoot, "}")
+		if len(restData) > 0 {
+			fmt.Println("WARNING: rest data:", restData)
+		}
 	}
 }
 
@@ -80,11 +97,11 @@ func decompress(f *os.File) ([]byte, error) {
 		defer gz.Close()
 		return io.ReadAll(gz)
 	case ZIP:
-		return []byte{}, fmt.Errorf("File has ZIP compression: ZIP is not supportet yet!")
+		return []byte{}, fmt.Errorf("file has ZIP compression: ZIP is not supportet yet")
 	case TAR:
-		return []byte{}, fmt.Errorf("File has TAR compression: TAR is not supportet yet!")
+		return []byte{}, fmt.Errorf("file has TAR compression: TAR is not supportet yet")
 	default:
-		return []byte{}, fmt.Errorf("File has unsupported compression!")
+		return []byte{}, fmt.Errorf("file has unsupported compression")
 	}
 }
 
