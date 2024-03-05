@@ -20,7 +20,15 @@ func NewParser(data []byte) (root NbtTag, restData []byte, err error) {
 		return root, data, fmt.Errorf("Found invalid root tag: %s", t)
 	}
 
-	return root.parse(data, true)
+	rootName, data, err := popString(data)
+	if err != nil {
+		return root, data, err
+	}
+	if rootName != "" {
+		fmt.Printf("dropped root name: %s\n", rootName)
+	}
+
+	return root.parse(data)
 }
 
 /*

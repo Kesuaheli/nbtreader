@@ -44,7 +44,7 @@ func main() {
 		exitUsage(err)
 	}
 
-	fmt.Println("{", nbtRoot, "}")
+	fmt.Println(nbtRoot)
 	if len(restData) > 0 {
 		fmt.Println("WARNING: rest data:", restData)
 	}

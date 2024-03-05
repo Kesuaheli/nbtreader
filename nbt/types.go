@@ -67,104 +67,23 @@ func popType(b []byte) (TagType, []byte, error) {
 
 type NbtTag interface {
 	String() string
-	StringVal() string
-	parse([]byte, bool) (NbtTag, []byte, error)
+	parse([]byte) (NbtTag, []byte, error)
 }
 type EndTag struct {
 }
-type Byte struct {
-	Name  string
-	Value int8
-}
-type Short struct {
-	Name  string
-	Value int16
-}
-type Int struct {
-	Name  string
-	Value int32
-}
-type Long struct {
-	Name  string
-	Value int64
-}
-type Float struct {
-	Name  string
-	Value float32
-}
-type Double struct {
-	Name  string
-	Value float64
-}
-type ByteArray struct {
-	Name  string
-	Items []int8
-}
-type String struct {
-	Name  string
-	Value string
-}
-type List struct {
-	Name    string
-	Type    TagType
-	Entries []NbtTag
-}
-type Compound struct {
-	Name     string
-	Children []NbtTag
-}
-type IntArray struct {
-	Name  string
-	Items []int32
-}
-type LongArray struct {
-	Name  string
-	Items []int64
-}
+type Byte byte
+type Short int16
+type Int int32
+type Long int64
+type Float float32
+type Double float64
+type ByteArray []Byte
+type String string
+type List []NbtTag
+type Compound map[String]NbtTag
+type IntArray []Int
+type LongArray []Long
 
-// named tags (name + value)
-
-func (t EndTag) String() string {
-	return fmt.Sprint("END_TAG")
-}
-func (t Byte) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t Short) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t Int) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t Long) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t Float) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t Double) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t ByteArray) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t String) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t List) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t Compound) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t IntArray) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-func (t LongArray) String() string {
-	return fmt.Sprintf("%s: %s", t.Name, t.StringVal())
-}
-
-// unnamed tags (only values)
 var indention int = 0
 
 func indent() string {
@@ -177,30 +96,30 @@ func indentDecr() {
 	indention = indention - 1
 }
 
-func (t EndTag) StringVal() string {
+func (t EndTag) String() string {
 	return fmt.Sprint("END_TAG")
 }
-func (t Byte) StringVal() string {
-	return fmt.Sprintf("%db", t.Value)
+func (t Byte) String() string {
+	return fmt.Sprintf("%db", t)
 }
-func (t Short) StringVal() string {
-	return fmt.Sprintf("%ds", t.Value)
+func (t Short) String() string {
+	return fmt.Sprintf("%ds", t)
 }
-func (t Int) StringVal() string {
-	return fmt.Sprintf("%d", t.Value)
+func (t Int) String() string {
+	return fmt.Sprintf("%d", t)
 }
-func (t Long) StringVal() string {
-	return fmt.Sprintf("%dl", t.Value)
+func (t Long) String() string {
+	return fmt.Sprintf("%dl", t)
 }
-func (t Float) StringVal() string {
-	return fmt.Sprintf("%gf", t.Value)
+func (t Float) String() string {
+	return fmt.Sprintf("%gf", t)
 }
-func (t Double) StringVal() string {
-	return fmt.Sprintf("%gd", t.Value)
+func (t Double) String() string {
+	return fmt.Sprintf("%gd", t)
 }
-func (t ByteArray) StringVal() string {
+func (t ByteArray) String() string {
 	var itemsString string
-	for i, item := range t.Items {
+	for i, item := range t {
 		if i == 0 {
 			itemsString = fmt.Sprint(item)
 		} else {
@@ -209,44 +128,46 @@ func (t ByteArray) StringVal() string {
 	}
 	return fmt.Sprintf("[B; %s]", itemsString)
 }
-func (t String) StringVal() string {
-	return fmt.Sprintf("\"%s\"", t.Value)
+func (t String) String() string {
+	return "\"" + string(t) + "\""
 }
-func (t List) StringVal() string {
+func (t List) String() string {
 	var entriesString string
-	for i, entry := range t.Entries {
+	for i, entry := range t {
 		if i == 0 {
 			indentIncr()
-			entriesString = entry.StringVal()
+			entriesString = entry.String()
 		} else {
-			entriesString = entriesString + ", " + entry.StringVal()
+			entriesString = entriesString + ", " + entry.String()
 		}
-		if i == len(t.Entries)-1 {
+		if i == len(t)-1 {
 			indentDecr()
 			// entriesString = entriesString
 		}
 	}
 	return fmt.Sprintf("[%s]", entriesString)
 }
-func (t Compound) StringVal() string {
+func (t Compound) String() string {
 	var childsString string
-	for i, child := range t.Children {
+	i := 0
+	for key, child := range t {
 		if i == 0 {
 			indentIncr()
-			childsString = indent() + child.String()
 		} else {
-			childsString = childsString + "," + indent() + child.String()
+			childsString = childsString + ","
 		}
-		if i == len(t.Children)-1 {
+		childsString += fmt.Sprintf("%s%s: %s", indent(), key, child.String())
+		if i == len(t)-1 {
 			indentDecr()
 			childsString = childsString + indent()
 		}
+		i++
 	}
 	return fmt.Sprintf("{%s}", childsString)
 }
-func (t IntArray) StringVal() string {
+func (t IntArray) String() string {
 	var itemsString string
-	for i, item := range t.Items {
+	for i, item := range t {
 		if i == 0 {
 			itemsString = fmt.Sprint(item)
 		} else {
@@ -255,9 +176,9 @@ func (t IntArray) StringVal() string {
 	}
 	return fmt.Sprintf("[I; %s]", itemsString)
 }
-func (t LongArray) StringVal() string {
+func (t LongArray) String() string {
 	var itemsString string
-	for i, item := range t.Items {
+	for i, item := range t {
 		if i == 0 {
 			itemsString = fmt.Sprint(item)
 		} else {
@@ -269,27 +190,27 @@ func (t LongArray) StringVal() string {
 
 // parsing
 
-func parseType(b []byte, named bool, tagType TagType) (NbtTag, []byte, error) {
+func parseType(b []byte, tagType TagType) (NbtTag, []byte, error) {
 	var tag NbtTag
 	switch tagType {
 	case Tag_End:
 		tag = EndTag{}
 	case Tag_Byte:
-		tag = Byte{}
+		tag = Byte(0)
 	case Tag_Short:
-		tag = Short{}
+		tag = Short(0)
 	case Tag_Int:
-		tag = Int{}
+		tag = Int(0)
 	case Tag_Long:
-		tag = Long{}
+		tag = Long(0)
 	case Tag_Float:
-		tag = Float{}
+		tag = Float(0)
 	case Tag_Double:
-		tag = Double{}
+		tag = Double(0)
 	case Tag_Byte_Array:
 		tag = ByteArray{}
 	case Tag_String:
-		tag = String{}
+		tag = String("")
 	case Tag_List:
 		tag = List{}
 	case Tag_Compound:
@@ -301,131 +222,60 @@ func parseType(b []byte, named bool, tagType TagType) (NbtTag, []byte, error) {
 	default:
 		tag = EndTag{}
 	}
-	tag, b, err := tag.parse(b, named)
+	tag, b, err := tag.parse(b)
 	return tag, b, err
 }
 
-func (t EndTag) parse(b []byte, named bool) (NbtTag, []byte, error) {
+func (t EndTag) parse(b []byte) (NbtTag, []byte, error) {
 	return t, b, nil
 }
 
-func (t Byte) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-	t.Value, b, err = popByte(b)
-	return t, b, err
+func (t Byte) parse(b []byte) (NbtTag, []byte, error) {
+	return popByte(b)
 }
 
-func (t Short) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-	t.Value, b, err = popShort(b)
-	return t, b, err
+func (t Short) parse(b []byte) (NbtTag, []byte, error) {
+	return popShort(b)
 }
 
-func (t Int) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-	t.Value, b, err = popInt(b)
-	return t, b, err
+func (t Int) parse(b []byte) (NbtTag, []byte, error) {
+	return popInt(b)
 }
 
-func (t Long) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-	t.Value, b, err = popLong(b)
-	return t, b, err
+func (t Long) parse(b []byte) (NbtTag, []byte, error) {
+	return popLong(b)
 }
 
-func (t Float) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-	t.Value, b, err = popFloat(b)
-	return t, b, err
+func (t Float) parse(b []byte) (NbtTag, []byte, error) {
+	return popFloat(b)
 }
 
-func (t Double) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-	t.Value, b, err = popDouble(b)
-	return t, b, err
+func (t Double) parse(b []byte) (NbtTag, []byte, error) {
+	return popDouble(b)
 }
 
-func (t ByteArray) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
+func (t ByteArray) parse(b []byte) (NbtTag, []byte, error) {
 	itemCap, b, err := popInt(b)
 	if err != nil {
 		return t, b, err
 	}
-	t.Items = make([]int8, 0, itemCap)
+	t = make([]Byte, 0, itemCap)
 	for i := 0; i < int(itemCap); i++ {
-		var item int8
+		var item Byte
 		item, b, err = popByte(b)
 		if err != nil {
 			return t, b, err
 		}
-		t.Items = append(t.Items, item)
+		t = append(t, item)
 	}
 	return t, b, nil
 }
 
-func (t String) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-	t.Value, b, err = popName(b)
-	return t, b, err
+func (t String) parse(b []byte) (NbtTag, []byte, error) {
+	return popString(b)
 }
 
-func (t List) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-
+func (t List) parse(b []byte) (NbtTag, []byte, error) {
 	i, b, err := popByte(b)
 	if err != nil {
 		return t, b, err
@@ -439,30 +289,22 @@ func (t List) parse(b []byte, named bool) (NbtTag, []byte, error) {
 		return t, b, fmt.Errorf("list cannot be of type TAG_END")
 	}
 
-	t.Entries = make([]NbtTag, 0, itemCap)
+	t = make([]NbtTag, 0, itemCap)
 	for i := 0; i < int(itemCap); i++ {
 		var entry NbtTag
-		entry, b, err = parseType(b, false, tagType)
+		entry, b, err = parseType(b, tagType)
 		if err != nil {
 			return t, b, err
 		}
-		t.Entries = append(t.Entries, entry)
+		t = append(t, entry)
 	}
 	return t, b, nil
 }
 
-func (t Compound) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
-
-	t.Children = make([]NbtTag, 0)
+func (t Compound) parse(b []byte) (NbtTag, []byte, error) {
 	for {
-		var i int8
+		var i Byte
+		var err error
 		i, b, err = popByte(b)
 		if err != nil {
 			return t, b, err
@@ -470,117 +312,101 @@ func (t Compound) parse(b []byte, named bool) (NbtTag, []byte, error) {
 		tagType := TagType(i)
 
 		if tagType == Tag_End {
-			break
+			return t, b, nil
 		}
 
+		var key String
 		var child NbtTag
-		child, b, err = parseType(b, true, tagType)
+		key, b, err = popString(b)
+		child, b, err = parseType(b, tagType)
 		if err != nil {
 			return t, b, err
 		}
-		t.Children = append(t.Children, child)
+		t[key] = child
 	}
-	return t, b, nil
 }
 
-func (t IntArray) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
+func (t IntArray) parse(b []byte) (NbtTag, []byte, error) {
 	itemCap, b, err := popInt(b)
 	if err != nil {
 		return t, b, err
 	}
-	t.Items = make([]int32, 0, itemCap)
+	t = make([]Int, 0, itemCap)
 	for i := 0; i < int(itemCap); i++ {
-		var item int32
+		var item Int
 		item, b, err = popInt(b)
 		if err != nil {
 			return t, b, err
 		}
-		t.Items = append(t.Items, item)
+		t = append(t, item)
 	}
 	return t, b, nil
 }
 
-func (t LongArray) parse(b []byte, named bool) (NbtTag, []byte, error) {
-	var err error
-	if named {
-		t.Name, b, err = popName(b)
-		if err != nil {
-			return t, b, err
-		}
-	}
+func (t LongArray) parse(b []byte) (NbtTag, []byte, error) {
 	itemCap, b, err := popInt(b)
 	if err != nil {
 		return t, b, err
 	}
-	t.Items = make([]int64, 0, itemCap)
+	t = make([]Long, 0, itemCap)
 	for i := 0; i < int(itemCap); i++ {
-		var item int64
+		var item Long
 		item, b, err = popLong(b)
 		if err != nil {
 			return t, b, err
 		}
-		t.Items = append(t.Items, item)
+		t = append(t, item)
 	}
 	return t, b, nil
 }
 
-func popByte(b []byte) (int8, []byte, error) {
-	return int8(b[0]), b[1:], nil
+func popByte(b []byte) (Byte, []byte, error) {
+	return Byte(b[0]), b[1:], nil
 }
 
-func popShort(b []byte) (int16, []byte, error) {
-	return int16(binary.BigEndian.Uint16(b[:2])), b[2:], nil
+func popShort(b []byte) (Short, []byte, error) {
+	return Short(binary.BigEndian.Uint16(b[:2])), b[2:], nil
 }
 
-func popInt(b []byte) (int32, []byte, error) {
-	return int32(binary.BigEndian.Uint32(b[:4])), b[4:], nil
+func popInt(b []byte) (Int, []byte, error) {
+	return Int(binary.BigEndian.Uint32(b[:4])), b[4:], nil
 }
 
-func popLong(b []byte) (int64, []byte, error) {
-	return int64(binary.BigEndian.Uint64(b[:8])), b[8:], nil
+func popLong(b []byte) (Long, []byte, error) {
+	return Long(binary.BigEndian.Uint64(b[:8])), b[8:], nil
 }
 
-func popFloat(b []byte) (float32, []byte, error) {
+func popFloat(b []byte) (Float, []byte, error) {
 	if len(b) < 4 {
 		return 0, b, fmt.Errorf("tried to get float (4 bytes) from %d bytes of data", len(b))
 	}
-	var f float32
+	var f Float
 	buf := bytes.NewReader(b[:4])
 	err := binary.Read(buf, binary.BigEndian, &f)
 
 	return f, b[4:], err
 }
 
-func popDouble(b []byte) (float64, []byte, error) {
+func popDouble(b []byte) (Double, []byte, error) {
 	if len(b) < 8 {
 		return 0, b, fmt.Errorf("tried to get double (8 bytes) from %d bytes of data", len(b))
 	}
-	var f float64
+	var f Double
 	buf := bytes.NewReader(b[:8])
 	err := binary.Read(buf, binary.BigEndian, &f)
 
 	return f, b[8:], err
 }
 
-func popString(b []byte, n uint16) (string, []byte, error) {
-	if len(b) < int(n) {
-		return "", b, fmt.Errorf("tried to get %d byte string from %d bytes of data", n, len(b))
-	}
-
-	return string(b[:n]), b[n:], nil
-}
-
-func popName(b []byte) (string, []byte, error) {
+func popString(b []byte) (String, []byte, error) {
 	lenName, b, err := popShort(b)
 	if err != nil {
 		return "", b, err
 	}
-	return popString(b, uint16(lenName))
+
+	if len(b) < int(lenName) {
+		return "", b, fmt.Errorf("tried to get %d byte string from %d bytes of data", lenName, len(b))
+	}
+
+	return String(b[:lenName]), b[lenName:], nil
 }
