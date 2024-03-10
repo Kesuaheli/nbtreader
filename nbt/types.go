@@ -1,9 +1,9 @@
 package nbt
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -67,7 +67,9 @@ func popType(b []byte) (TagType, []byte, error) {
 
 type NbtTag interface {
 	String() string
+	Type() TagType
 	parse([]byte) (NbtTag, []byte, error)
+	compose() []byte
 }
 type EndTag struct {
 }
@@ -99,24 +101,59 @@ func indentDecr() {
 func (t EndTag) String() string {
 	return fmt.Sprint("END_TAG")
 }
+
+func (t EndTag) Type() TagType {
+	return Tag_End
+}
+
 func (t Byte) String() string {
 	return fmt.Sprintf("%db", t)
 }
+
+func (t Byte) Type() TagType {
+	return Tag_Byte
+}
+
 func (t Short) String() string {
 	return fmt.Sprintf("%ds", t)
 }
+
+func (t Short) Type() TagType {
+	return Tag_Short
+}
+
 func (t Int) String() string {
 	return fmt.Sprintf("%d", t)
 }
+
+func (t Int) Type() TagType {
+	return Tag_Int
+}
+
 func (t Long) String() string {
 	return fmt.Sprintf("%dl", t)
 }
+
+func (t Long) Type() TagType {
+	return Tag_Long
+}
+
 func (t Float) String() string {
 	return fmt.Sprintf("%gf", t)
 }
+
+func (t Float) Type() TagType {
+	return Tag_Float
+}
+
 func (t Double) String() string {
 	return fmt.Sprintf("%gd", t)
 }
+
+func (t Double) Type() TagType {
+	return Tag_Double
+}
+
 func (t ByteArray) String() string {
 	var itemsString string
 	for i, item := range t {
@@ -128,9 +165,23 @@ func (t ByteArray) String() string {
 	}
 	return fmt.Sprintf("[B; %s]", itemsString)
 }
+
+func (t ByteArray) Type() TagType {
+	return Tag_Byte_Array
+}
+
 func (t String) String() string {
 	return "\"" + string(t) + "\""
 }
+
+func (t String) Type() TagType {
+	return Tag_String
+}
+
+func (t String) Len() Short {
+	return Short(len(t))
+}
+
 func (t List) String() string {
 	var entriesString string
 	for i, entry := range t {
@@ -147,6 +198,11 @@ func (t List) String() string {
 	}
 	return fmt.Sprintf("[%s]", entriesString)
 }
+
+func (t List) Type() TagType {
+	return Tag_List
+}
+
 func (t Compound) String() string {
 	var childsString string
 	i := 0
@@ -156,7 +212,7 @@ func (t Compound) String() string {
 		} else {
 			childsString = childsString + ","
 		}
-		childsString += fmt.Sprintf("%s%s: %s", indent(), key, child.String())
+		childsString += fmt.Sprintf("%s%s: %s", indent(), string(key), child.String())
 		if i == len(t)-1 {
 			indentDecr()
 			childsString = childsString + indent()
@@ -165,6 +221,11 @@ func (t Compound) String() string {
 	}
 	return fmt.Sprintf("{%s}", childsString)
 }
+
+func (t Compound) Type() TagType {
+	return Tag_Compound
+}
+
 func (t IntArray) String() string {
 	var itemsString string
 	for i, item := range t {
@@ -176,6 +237,11 @@ func (t IntArray) String() string {
 	}
 	return fmt.Sprintf("[I; %s]", itemsString)
 }
+
+func (t IntArray) Type() TagType {
+	return Tag_Int_Array
+}
+
 func (t LongArray) String() string {
 	var itemsString string
 	for i, item := range t {
@@ -186,6 +252,10 @@ func (t LongArray) String() string {
 		}
 	}
 	return fmt.Sprintf("[L; %s]", itemsString)
+}
+
+func (t LongArray) Type() TagType {
+	return Tag_Long_Array
 }
 
 // parsing
@@ -227,6 +297,7 @@ func parseType(b []byte, tagType TagType) (NbtTag, []byte, error) {
 }
 
 func (t EndTag) parse(b []byte) (NbtTag, []byte, error) {
+	fmt.Printf("parse tag end? %d bytes left: next 6: %v (%s)\n", len(b), b[:6], b[:6])
 	return t, b, nil
 }
 
@@ -258,6 +329,9 @@ func (t ByteArray) parse(b []byte) (NbtTag, []byte, error) {
 	itemCap, b, err := popInt(b)
 	if err != nil {
 		return t, b, err
+	}
+	if int(itemCap) > len(b) {
+		return t, b, fmt.Errorf("tried to parse %d bytes but only %d left:\n%v\n%s", itemCap, len(b), b, b)
 	}
 	t = make([]Byte, 0, itemCap)
 	for i := 0; i < int(itemCap); i++ {
@@ -364,38 +438,52 @@ func popByte(b []byte) (Byte, []byte, error) {
 	return Byte(b[0]), b[1:], nil
 }
 
+func pushByte[B Byte | byte | int8 | TagType](data []byte, b B) []byte {
+	return append(data, byte(b))
+}
+
 func popShort(b []byte) (Short, []byte, error) {
 	return Short(binary.BigEndian.Uint16(b[:2])), b[2:], nil
+}
+
+func pushShort[S Short | int16 | uint16](data []byte, s S) []byte {
+	return binary.BigEndian.AppendUint16(data, uint16(s))
 }
 
 func popInt(b []byte) (Int, []byte, error) {
 	return Int(binary.BigEndian.Uint32(b[:4])), b[4:], nil
 }
 
+func pushInt[I Int | int32 | uint32 | int](data []byte, i I) []byte {
+	return binary.BigEndian.AppendUint32(data, uint32(i))
+}
+
 func popLong(b []byte) (Long, []byte, error) {
 	return Long(binary.BigEndian.Uint64(b[:8])), b[8:], nil
 }
 
-func popFloat(b []byte) (Float, []byte, error) {
-	if len(b) < 4 {
-		return 0, b, fmt.Errorf("tried to get float (4 bytes) from %d bytes of data", len(b))
-	}
-	var f Float
-	buf := bytes.NewReader(b[:4])
-	err := binary.Read(buf, binary.BigEndian, &f)
+func pushLong[L Long | int64 | uint64 | int](data []byte, l L) []byte {
+	return binary.BigEndian.AppendUint64(data, uint64(l))
+}
 
-	return f, b[4:], err
+func popFloat(b []byte) (Float, []byte, error) {
+	i, b, err := popInt(b)
+	f := Float(math.Float32frombits(uint32(i)))
+	return f, b, err
+}
+
+func pushFloat[F Float | float32](data []byte, f F) []byte {
+	return pushInt(data, Int(math.Float32bits(float32(f))))
 }
 
 func popDouble(b []byte) (Double, []byte, error) {
-	if len(b) < 8 {
-		return 0, b, fmt.Errorf("tried to get double (8 bytes) from %d bytes of data", len(b))
-	}
-	var f Double
-	buf := bytes.NewReader(b[:8])
-	err := binary.Read(buf, binary.BigEndian, &f)
+	l, b, err := popLong(b)
+	d := Double(math.Float64frombits(uint64(l)))
+	return d, b, err
+}
 
-	return f, b[8:], err
+func pushDouble[D Double | float64](data []byte, d D) []byte {
+	return pushLong(data, Long(math.Float64bits(float64(d))))
 }
 
 func popString(b []byte) (String, []byte, error) {
@@ -409,4 +497,9 @@ func popString(b []byte) (String, []byte, error) {
 	}
 
 	return String(b[:lenName]), b[lenName:], nil
+}
+
+func pushString(b []byte, s String) []byte {
+	b = pushShort(b, s.Len())
+	return append(b, []byte(s)...)
 }

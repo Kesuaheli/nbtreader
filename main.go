@@ -48,6 +48,15 @@ func main() {
 	if len(restData) > 0 {
 		fmt.Println("WARNING: rest data:", restData)
 	}
+
+	nbtRaw2 := nbt.Compose(nbtRoot)
+	data, err := compress(nbtRaw2)
+	if err != nil {
+		fmt.Println("Error while compressing NBT:")
+		exitUsage(err)
+	}
+	os.WriteFile("files/output.dat", data, 0644)
+	fmt.Println("Wrote file to files/output.dat")
 }
 
 // exitUsage prints the error, if any, and the command usage and then
@@ -86,6 +95,14 @@ func decompress(f *os.File) ([]byte, error) {
 	default:
 		return []byte{}, fmt.Errorf("File has unsupported compression!")
 	}
+}
+
+func compress(data []byte) ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{})
+	gz := gzip.NewWriter(buf)
+	_, err := gz.Write(data)
+	gz.Close()
+	return buf.Bytes(), err
 }
 
 func getCompressionType(b []byte) Compression {
