@@ -1,5 +1,10 @@
 package nbt
 
+import (
+	"encoding/binary"
+	"math"
+)
+
 func Compose(tag NbtTag) []byte {
 	var buf []byte
 	buf = pushByte(buf, tag.Type())
@@ -9,9 +14,6 @@ func Compose(tag NbtTag) []byte {
 	return buf
 }
 
-func (t EndTag) compose() []byte {
-	return []byte{}
-}
 func (t Byte) compose() []byte {
 	return pushByte([]byte{}, t)
 }
@@ -77,4 +79,33 @@ func (t LongArray) compose() []byte {
 		buf = pushLong(buf, l)
 	}
 	return buf
+}
+
+func pushByte[B Byte | byte | int8 | TagType](data []byte, b B) []byte {
+	return append(data, byte(b))
+}
+
+func pushShort[S Short | int16 | uint16](data []byte, s S) []byte {
+	return binary.BigEndian.AppendUint16(data, uint16(s))
+}
+
+func pushInt[I Int | int32 | uint32 | int](data []byte, i I) []byte {
+	return binary.BigEndian.AppendUint32(data, uint32(i))
+}
+
+func pushLong[L Long | int64 | uint64 | int](data []byte, l L) []byte {
+	return binary.BigEndian.AppendUint64(data, uint64(l))
+}
+
+func pushFloat[F Float | float32](data []byte, f F) []byte {
+	return pushInt(data, Int(math.Float32bits(float32(f))))
+}
+
+func pushDouble[D Double | float64](data []byte, d D) []byte {
+	return pushLong(data, Long(math.Float64bits(float64(d))))
+}
+
+func pushString(b []byte, s String) []byte {
+	b = pushShort(b, s.Len())
+	return append(b, []byte(s)...)
 }
