@@ -21,7 +21,7 @@ nbtreader
 go.work
 
 # Files to test funcionality
-/files/**
+files
 
 # Stupid mac file
 .DS_Store

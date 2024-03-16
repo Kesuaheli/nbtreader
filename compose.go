@@ -5,15 +5,6 @@ import (
 	"math"
 )
 
-func Compose(tag NbtTag) []byte {
-	var buf []byte
-	buf = pushByte(buf, tag.Type())
-	buf = pushString(buf, "") // root name not supported so its always empty
-
-	buf = append(buf, tag.compose()...)
-	return buf
-}
-
 func (t Byte) compose() []byte {
 	return pushByte([]byte{}, t)
 }
