@@ -1,4 +1,4 @@
-package nbt
+package nbtreader
 
 import (
 	"encoding/binary"

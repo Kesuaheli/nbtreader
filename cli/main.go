@@ -5,9 +5,10 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"nbtreader/nbt"
 	"os"
 	"path/filepath"
+
+	"github.com/Kesuaheli/nbtreader"
 )
 
 type Compression int
@@ -38,7 +39,7 @@ func main() {
 		exitUsage(err)
 	}
 
-	nbtRoot, restData, err := nbt.NewParser(nbtRaw)
+	nbtRoot, restData, err := nbtreader.NewParser(nbtRaw)
 	if err != nil {
 		fmt.Println("Error while parsing data:")
 		exitUsage(err)
@@ -49,7 +50,7 @@ func main() {
 		fmt.Println("WARNING: rest data:", restData)
 	}
 
-	nbtRaw2 := nbt.Compose(nbtRoot)
+	nbtRaw2 := nbtreader.Compose(nbtRoot)
 	data, err := compress(nbtRaw2)
 	if err != nil {
 		fmt.Println("Error while compressing NBT:")
