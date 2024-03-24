@@ -2,6 +2,7 @@ package nbtreader
 
 import (
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -56,17 +57,20 @@ func (t TagType) String() string {
 	}
 }
 
-func popType(b []byte) (TagType, []byte, error) {
-	if len(b) == 0 {
-		return 0x00, b, fmt.Errorf("tried to get nbt type from empty data")
+func popType(r io.Reader) (TagType, error) {
+	var ttype [1]byte
+	if _, err := r.Read(ttype[:]); err != nil {
+		return 0x00, fmt.Errorf("pop type: %v", err)
 	}
-	return TagType(b[0]), b[1:], nil
+
+	t := TagType(ttype[0])
+	return t, nil
 }
 
 type NbtTag interface {
 	String() string
 	Type() TagType
-	parse([]byte) (NbtTag, []byte, error)
+	parse(io.Reader) (NbtTag, error)
 	compose() []byte
 }
 

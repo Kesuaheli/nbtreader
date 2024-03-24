@@ -15,12 +15,12 @@ func main() {
 		fmt.Println("Please specify a file:")
 		exitUsage(nil)
 	}
-	data, err := os.ReadFile(os.Args[1])
+	file, err := os.Open(os.Args[1])
 	if err != nil {
 		exitUsage(err)
 	}
 
-	nbt, err := nbtreader.New(data)
+	nbt, err := nbtreader.New(file)
 	if err != nil {
 		fmt.Println("Error while reading file:")
 		exitUsage(err)
@@ -28,6 +28,8 @@ func main() {
 
 	fmt.Println("SNBT:\n", nbt)
 
+	// TODO: update Compose to io.Writer interface
+	/* Outdated code
 	data = nbt.Compose()
 
 	if err = os.MkdirAll("files", 0644); err != nil {
@@ -39,6 +41,7 @@ func main() {
 		exitUsage(err)
 	}
 	fmt.Println("Wrote file to files/output.dat")
+	*/
 }
 
 // exitUsage prints the error, if any, and the command usage and then
