@@ -109,11 +109,7 @@ func (nbt *NBT) decompress() error {
 	case NONE:
 		return nil
 	case GZIP:
-		buf, err := io.ReadAll(nbt.rw)
-		if err != nil {
-			return err
-		}
-		gzipReader, err := gzip.NewReader(bytes.NewBuffer(buf))
+		gzipReader, err := gzip.NewReader(nbt.rw.Reader)
 		if err != nil {
 			return err
 		}
