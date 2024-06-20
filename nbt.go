@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 )
@@ -122,6 +123,10 @@ func (nbt *NBT) decompress() error {
 	default:
 		return fmt.Errorf("file has unsupported compression: %2x", c)
 	}
+}
+
+func (nbt *NBT) MarshalJSON() ([]byte, error) {
+	return json.Marshal(nbt.root)
 }
 
 // TODO: update compress to use io.Writer interface

@@ -1,8 +1,11 @@
 package nbtreader
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 )
 
@@ -96,6 +99,10 @@ func (t Byte) Type() TagType {
 	return Tag_Byte
 }
 
+func (t Byte) MarshalJSON() ([]byte, error) {
+	return numberToJSON(t)
+}
+
 type Short int16
 
 func (t Short) String() string {
@@ -104,6 +111,10 @@ func (t Short) String() string {
 
 func (t Short) Type() TagType {
 	return Tag_Short
+}
+
+func (t Short) MarshalJSON() ([]byte, error) {
+	return numberToJSON(t)
 }
 
 type Int int32
@@ -116,6 +127,10 @@ func (t Int) Type() TagType {
 	return Tag_Int
 }
 
+func (t Int) MarshalJSON() ([]byte, error) {
+	return numberToJSON(t)
+}
+
 type Long int64
 
 func (t Long) String() string {
@@ -124,6 +139,10 @@ func (t Long) String() string {
 
 func (t Long) Type() TagType {
 	return Tag_Long
+}
+
+func (t Long) MarshalJSON() ([]byte, error) {
+	return numberToJSON(t)
 }
 
 type Float float32
@@ -136,6 +155,10 @@ func (t Float) Type() TagType {
 	return Tag_Float
 }
 
+func (t Float) MarshalJSON() ([]byte, error) {
+	return numberToJSON(t)
+}
+
 type Double float64
 
 func (t Double) String() string {
@@ -144,6 +167,10 @@ func (t Double) String() string {
 
 func (t Double) Type() TagType {
 	return Tag_Double
+}
+
+func (t Double) MarshalJSON() ([]byte, error) {
+	return numberToJSON(t)
 }
 
 type ByteArray []Byte
@@ -164,6 +191,10 @@ func (t ByteArray) Type() TagType {
 	return Tag_Byte_Array
 }
 
+func (t ByteArray) MarshalJSON() ([]byte, error) {
+	return arrayMarshalJSON([]Byte(t))
+}
+
 type String string
 
 func (t String) String() string {
@@ -176,6 +207,10 @@ func (t String) Type() TagType {
 
 func (t String) Len() Short {
 	return Short(len(t))
+}
+
+func (t String) MarshalJSON() ([]byte, error) {
+	return []byte(t.String()), nil
 }
 
 type List []NbtTag
@@ -194,6 +229,10 @@ func (t List) String() string {
 
 func (t List) Type() TagType {
 	return Tag_List
+}
+
+func (t List) MarshalJSON() ([]byte, error) {
+	return arrayMarshalJSON([]NbtTag(t))
 }
 
 type Compound map[String]NbtTag
@@ -239,6 +278,10 @@ func (t IntArray) Type() TagType {
 	return Tag_Int_Array
 }
 
+func (t IntArray) MarshalJSON() ([]byte, error) {
+	return arrayMarshalJSON([]Int(t))
+}
+
 type LongArray []Long
 
 func (t LongArray) String() string {
@@ -255,4 +298,43 @@ func (t LongArray) String() string {
 
 func (t LongArray) Type() TagType {
 	return Tag_Long_Array
+}
+
+func (t LongArray) MarshalJSON() ([]byte, error) {
+	return arrayMarshalJSON([]Long(t))
+}
+
+// numberToJSON is a helper function that formats any NBT number to a valid JSON number.
+func numberToJSON[N Byte | Short | Int | Long | Float | Double](num N) ([]byte, error) {
+	_, okF := any(num).(Float)
+	_, okD := any(num).(Double)
+	if !okF && !okD {
+		return []byte(fmt.Sprintf("%d", int64(num))), nil
+	}
+	if math.Mod(float64(num), 1) == 0 {
+		return []byte(fmt.Sprintf("%d.0", int64(num))), nil
+	}
+	return []byte(fmt.Sprintf("%f", float64(num))), nil
+}
+
+// arrayToJSON is a helper function that formats any NBT array or list to a valid JSON array.
+func arrayMarshalJSON[S []E, E NbtTag](s S) ([]byte, error) {
+	var (
+		childsBytes bytes.Buffer
+		err         error
+	)
+	childsBytes.WriteByte('[')
+	for i, entry := range s {
+		var childJSON []byte
+		childJSON, err = json.Marshal(entry)
+		childsBytes.Write(childJSON)
+		if err != nil {
+			break
+		}
+		if i < len(s)-1 {
+			childsBytes.WriteByte(',')
+		}
+	}
+	childsBytes.WriteByte(']')
+	return childsBytes.Bytes(), err
 }

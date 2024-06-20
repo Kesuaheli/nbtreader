@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,6 +28,18 @@ func main() {
 	}
 
 	fmt.Println("SNBT:\n", nbt)
+
+	out, err := json.MarshalIndent(nbt, "", "	")
+	if err != nil {
+		fmt.Println("Error while marshalling json:")
+		exitUsage(err)
+	}
+
+	err = os.WriteFile("../files/out.json", out, 0664)
+	if err != nil {
+		fmt.Println("Error while writing json file:")
+		exitUsage(err)
+	}
 
 	// TODO: update Compose to io.Writer interface
 	/* Outdated code
