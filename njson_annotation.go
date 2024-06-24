@@ -71,6 +71,7 @@ func (ta TypeAnnotation) String() string {
 }
 
 func AnnotationOf(v reflect.Value) TypeAnnotation {
+	t := v.Type()
 	switch v.Kind() {
 	default:
 		fmt.Printf("unknown type '%s' (%s)\n", v, v.Kind())
@@ -78,26 +79,32 @@ func AnnotationOf(v reflect.Value) TypeAnnotation {
 	case reflect.Map:
 		return CompoundAnnotation
 	case reflect.Slice:
-		if t := v.Type(); t == reflect.TypeOf(List{}) {
-			return NoAnnotation
-		} else if t == reflect.TypeOf(ByteArray{}) {
-			return NoAnnotation
-		} else if t == reflect.TypeOf(IntArray{}) {
-			return NoAnnotation
-		} else if t == reflect.TypeOf(LongArray{}) {
-			return NoAnnotation
-		}
-		switch t := v.Type().Elem(); t.Kind() {
+		switch t.Elem().Kind() {
 		case reflect.Int8:
 			return ByteArrayAnnotation
 		case reflect.Int32, reflect.Uint16:
 			return IntArrayAnnotation
 		case reflect.Int64, reflect.Uint32:
 			return LongArrayAnnotation
-		default:
-			fmt.Printf("unknown array type '%s' (%s)\n", t, t.Kind())
-			return InferenceArrayAnnotation
 		}
+
+		switch t {
+		case reflect.TypeOf(ByteArray{}):
+			return ByteArrayAnnotation
+		case reflect.TypeOf(IntArray{}):
+			return IntArrayAnnotation
+		case reflect.TypeOf(LongArray{}):
+			return LongArrayAnnotation
+		}
+
+		fmt.Printf("unknown array type '%s' ([]%s)\n", t, t.Elem())
+		return InferenceArrayAnnotation
+	case reflect.Struct:
+		if t == reflect.TypeOf(List{}) {
+			return NoAnnotation
+		}
+		fmt.Printf("unknown struct type '%s'\n", t)
+		return InferenceAnnotation
 	case reflect.Int8:
 		return ByteAnnotation
 	case reflect.Int16, reflect.Uint8:

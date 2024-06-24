@@ -90,23 +90,22 @@ func (t List) parse(r io.Reader) (NbtTag, error) {
 	if err != nil {
 		return t, err
 	}
-	tagType := TagType(i)
+	t.TagType = TagType(i)
 	itemCap, err := popInt(r)
 	if err != nil {
 		return t, err
 	}
-	if tagType == Tag_End && itemCap > 0 {
+	if t.TagType == Tag_End && itemCap > 0 {
 		return t, fmt.Errorf("list cannot be of type TAG_END")
 	}
 
-	t = make([]NbtTag, itemCap)
-	for i := 0; i < int(itemCap); i++ {
-		var entry NbtTag
-		entry, err = parseType(r, tagType)
+	t.Elements = make([]NbtTag, itemCap)
+	for i, entry := range t.Elements {
+		entry, err = parseType(r, t.TagType)
 		if err != nil {
 			return t, err
 		}
-		t[i] = entry
+		t.Elements[i] = entry
 	}
 	return t, nil
 }

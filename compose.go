@@ -34,16 +34,16 @@ func (t String) compose() []byte {
 	return pushString([]byte{}, t)
 }
 func (t List) compose() []byte {
-	itemCap := len(t)
+	itemCap := len(t.Elements)
 	if itemCap == 0 {
 		buf := pushByte([]byte{}, Tag_End)
 		return pushInt(buf, 0)
 	}
 
-	buf := pushByte([]byte{}, t[0].Type())
+	buf := pushByte([]byte{}, t.TagType)
 	buf = pushInt(buf, itemCap)
-	for _, i := range t {
-		buf = append(buf, i.compose()...)
+	for _, entry := range t.Elements {
+		buf = append(buf, entry.compose()...)
 	}
 	return buf
 }

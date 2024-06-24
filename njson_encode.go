@@ -69,6 +69,28 @@ func (e *njsonEncoderState) marshal(v any) (err error) {
 }
 
 func (e *njsonEncoderState) valueEncoder(v reflect.Value) {
+	switch v.Type() {
+	case reflect.TypeOf(Byte(0)), reflect.TypeOf(Short(0)), reflect.TypeOf(Int(0)), reflect.TypeOf(Long(0)):
+		e.intEncoder(v)
+		return
+	case reflect.TypeOf(Float(0)), reflect.TypeOf(Double(0)):
+		e.floatEncoder(v)
+		return
+	case reflect.TypeOf(String("")):
+		e.stringEncoder(v)
+		return
+	case reflect.TypeOf(List{}):
+		l := v.Interface().(List)
+		v = reflect.ValueOf(l.Elements)
+		fallthrough
+	case reflect.TypeOf(ByteArray{}), reflect.TypeOf(IntArray{}), reflect.TypeOf(LongArray{}):
+		e.arrayEncoder(v)
+		return
+	case reflect.TypeOf(Compound{}):
+		e.objectEncoder(v)
+		return
+	}
+
 	switch kind := v.Kind(); kind {
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		e.intEncoder(v)

@@ -213,11 +213,14 @@ func (t String) MarshalJSON() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-type List []NbtTag
+type List struct {
+	TagType  TagType
+	Elements []NbtTag
+}
 
 func (t List) String() string {
 	var entriesString string
-	for i, entry := range t {
+	for i, entry := range t.Elements {
 		if i == 0 {
 			entriesString = entry.String()
 		} else {
@@ -232,7 +235,7 @@ func (t List) Type() TagType {
 }
 
 func (t List) MarshalJSON() ([]byte, error) {
-	return arrayMarshalJSON([]NbtTag(t))
+	return arrayMarshalJSON(t.Elements)
 }
 
 type Compound map[String]NbtTag
