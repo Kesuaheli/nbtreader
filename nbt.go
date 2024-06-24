@@ -129,6 +129,10 @@ func (nbt *NBT) MarshalJSON() ([]byte, error) {
 	return json.Marshal(nbt.root)
 }
 
+func (nbt *NBT) MarshalNJSON() ([]byte, error) {
+	return MarshalNJSON(nbt.root)
+}
+
 // TODO: update compress to use io.Writer interface
 /* Outdated code
 func (nbt *NBT) compress() error {

@@ -35,9 +35,20 @@ func main() {
 		exitUsage(err)
 	}
 
+	out2, err := nbtreader.MarshalNJSON(nbt)
+	if err != nil {
+		fmt.Println("Error while marshalling njson:")
+		exitUsage(err)
+	}
+
 	err = os.WriteFile("../files/out.json", out, 0664)
 	if err != nil {
 		fmt.Println("Error while writing json file:")
+		exitUsage(err)
+	}
+	err = os.WriteFile("../files/out2.json", out2, 0664)
+	if err != nil {
+		fmt.Println("Error while writing njson file:")
 		exitUsage(err)
 	}
 
