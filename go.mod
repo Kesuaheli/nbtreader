@@ -1,3 +1,3 @@
 module github.com/Kesuaheli/nbtreader
 
-go 1.20
+go 1.21.5
