@@ -111,6 +111,7 @@ func (t List) parse(r io.Reader) (NbtTag, error) {
 }
 
 func (t Compound) parse(r io.Reader) (NbtTag, error) {
+	index := 0
 	for {
 		var i Byte
 		var err error
@@ -131,7 +132,11 @@ func (t Compound) parse(r io.Reader) (NbtTag, error) {
 		if err != nil {
 			return t, err
 		}
-		t[key] = child
+		t[key] = struct {
+			Index int
+			Value NbtTag
+		}{Index: index, Value: child}
+		index++
 	}
 }
 

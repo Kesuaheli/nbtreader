@@ -92,9 +92,6 @@ func (e *njsonEncoderState) valueEncoder(v reflect.Value) {
 	case reflect.TypeOf(ByteArray{}), reflect.TypeOf(IntArray{}), reflect.TypeOf(LongArray{}):
 		e.arrayEncoder(v)
 		return
-	case reflect.TypeOf(Compound{}):
-		e.objectEncoder(v)
-		return
 	}
 
 	switch kind := v.Kind(); kind {

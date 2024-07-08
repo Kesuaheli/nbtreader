@@ -270,18 +270,25 @@ func (t List) MarshalJSON() ([]byte, error) {
 	return arrayMarshalJSON(t.Elements)
 }
 
-type Compound map[String]NbtTag
+type Compound map[String]struct {
+	Index int
+	Value NbtTag
+}
+type orderedCompound struct {
+	Key   String
+	Value NbtTag
+}
 
 func (t Compound) String() string {
 	var childsString string
 	i := 0
-	for key, child := range t {
+	for _, comp := range t.getOrdered() {
 		if i == 0 {
 			indentIncr()
 		} else {
 			childsString = childsString + ","
 		}
-		childsString += fmt.Sprintf("%s%s: %s", indent(), string(key), child.String())
+		childsString += fmt.Sprintf("%s%s: %s", indent(), string(comp.Key), comp.Value.String())
 		if i == len(t)-1 {
 			indentDecr()
 			childsString = childsString + indent()
@@ -293,6 +300,51 @@ func (t Compound) String() string {
 
 func (t Compound) Type() TagType {
 	return Tag_Compound
+}
+
+func (t Compound) getOrdered() []orderedCompound {
+	ordered := make([]orderedCompound, len(t))
+	for k, v := range t {
+		ordered[v.Index] = orderedCompound{k, v.Value}
+	}
+	return ordered
+}
+
+func (t Compound) MarshalJSON() ([]byte, error) {
+	return t.marshalJSON(false)
+}
+
+func (t Compound) MarshalNJSON() ([]byte, error) {
+	return t.marshalJSON(true)
+}
+
+func (t Compound) marshalJSON(njson bool) (b []byte, err error) {
+	buf := bytes.Buffer{}
+	buf.WriteByte('{')
+	for i, comp := range t.getOrdered() {
+		buf.WriteByte('"')
+		buf.WriteString(string(comp.Key))
+		if njson {
+			buf.WriteString(comp.Value.Type().Annotation().String())
+		}
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+		var v []byte
+		if njson {
+			v, err = MarshalNJSON(comp.Value)
+		} else {
+			v, err = json.Marshal(comp.Value)
+		}
+		if err != nil {
+			return buf.Bytes(), err
+		}
+		buf.Write(v)
+		if i < len(t)-1 {
+			buf.WriteByte(',')
+		}
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
 }
 
 type IntArray []Int

@@ -50,9 +50,9 @@ func (t List) compose() []byte {
 func (t Compound) compose() []byte {
 	var data []byte
 	for name, tag := range t {
-		data = pushByte(data, tag.Type())
+		data = pushByte(data, tag.Value.Type())
 		data = pushString(data, name)
-		data = append(data, tag.compose()...)
+		data = append(data, tag.Value.compose()...)
 	}
 	data = pushByte(data, Tag_End)
 	return data
