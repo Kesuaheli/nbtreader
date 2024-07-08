@@ -60,6 +60,38 @@ func (t TagType) String() string {
 	}
 }
 
+func (t TagType) Annotation() TypeAnnotation {
+	switch t {
+	case Tag_Byte:
+		return ByteAnnotation
+	case Tag_Short:
+		return ShortAnnotation
+	case Tag_Int:
+		return IntAnnotation
+	case Tag_Long:
+		return LongAnnotation
+	case Tag_Float:
+		return FloatAnnotation
+	case Tag_Double:
+		return DoubleAnnotation
+	case Tag_Byte_Array:
+		return ByteArrayAnnotation
+	case Tag_String:
+		return StringAnnotation
+	case Tag_List:
+		return NoAnnotation
+	case Tag_Compound:
+		return CompoundAnnotation
+	case Tag_Int_Array:
+		return IntArrayAnnotation
+	case Tag_Long_Array:
+		return LongArrayAnnotation
+	default:
+		// also for Tag_End and Tag_List
+		return NoAnnotation
+	}
+}
+
 func popType(r io.Reader) (TagType, error) {
 	var ttype [1]byte
 	if _, err := r.Read(ttype[:]); err != nil {

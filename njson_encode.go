@@ -81,6 +81,12 @@ func (e *njsonEncoderState) valueEncoder(v reflect.Value) {
 		return
 	case reflect.TypeOf(List{}):
 		l := v.Interface().(List)
+		if anno := l.TagType.Annotation(); anno != NoAnnotation {
+			// allocation friendly prepending of type annotation
+			l.Elements = append(l.Elements, nil)
+			copy(l.Elements[1:], l.Elements)
+			l.Elements[0] = String(anno.String())
+		}
 		v = reflect.ValueOf(l.Elements)
 		fallthrough
 	case reflect.TypeOf(ByteArray{}), reflect.TypeOf(IntArray{}), reflect.TypeOf(LongArray{}):
