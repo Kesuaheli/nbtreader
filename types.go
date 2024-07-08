@@ -121,7 +121,7 @@ func indentDecr() {
 	indention = indention - 1
 }
 
-type Byte byte
+type Byte int8
 
 func (t Byte) String() string {
 	return fmt.Sprintf("%db", t)
