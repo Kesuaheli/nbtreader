@@ -2,21 +2,54 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/Kesuaheli/nbtreader"
 )
 
+type FileType string
+
+const (
+	fileTypeJSON  = "json"
+	fileTypeNBT   = "nbt"
+	fileTypeNJSON = "njson"
+	fileTypeSNBT  = "snbt"
+)
+
+var (
+	input      *string
+	inputType  *string
+	output     *string
+	outputType *string
+)
+
+func init() {
+	input = flag.String("file", "", "The input file to read")
+	inputType = flag.String("inType", "", "The filetype of input file")
+	output = flag.String("out", "", "The file to write the output to")
+	outputType = flag.String("outType", "", "The filetype of output file")
+}
+
 func main() {
-	if len(os.Args) == 0 {
-		os.Exit(1)
-	} else if len(os.Args) == 1 {
-		fmt.Println("Please specify a file:")
+	flag.Parse()
+	if *input == "" || *inputType == "" || *outputType == "" {
 		exitUsage(nil)
 	}
-	file, err := os.Open(os.Args[1])
+
+	*inputType = strings.ToLower(*inputType)
+	*outputType = strings.ToLower(*outputType)
+
+	if *input != "" && *inputType != fileTypeNBT {
+		exitUsage(fmt.Errorf("unknown or unsupported input type '%s'", *inputType))
+	}
+	if *output != "" && *outputType != fileTypeJSON && *outputType != fileTypeNJSON && *outputType != fileTypeSNBT {
+		exitUsage(fmt.Errorf("unknown or unsupported output type '%s'", *inputType))
+	}
+
+	file, err := os.Open(*input)
 	if err != nil {
 		exitUsage(err)
 	}
@@ -27,28 +60,32 @@ func main() {
 		exitUsage(err)
 	}
 
-	fmt.Println("SNBT:\n", nbt)
+	var out []byte
+	switch *outputType {
+	case fileTypeJSON:
+		out, err = json.MarshalIndent(nbt, "", "	")
+	case fileTypeNJSON:
+		out, err = nbtreader.MarshalNJSON(nbt)
+	case fileTypeSNBT:
+		out = []byte(fmt.Sprint(nbt))
+		out = append(out, '\n')
+	default:
+		panic(fmt.Sprintf("unhandled output type '%s'", *outputType))
+	}
 
-	out, err := json.MarshalIndent(nbt, "", "	")
 	if err != nil {
-		fmt.Println("Error while marshalling json:")
+		fmt.Printf("Error while marshalling to output '%s':\n", *outputType)
 		exitUsage(err)
 	}
 
-	out2, err := nbtreader.MarshalNJSON(nbt)
-	if err != nil {
-		fmt.Println("Error while marshalling njson:")
-		exitUsage(err)
+	if *output == "" {
+		fmt.Print(string(out))
+		return
 	}
 
-	err = os.WriteFile("../files/out.json", out, 0664)
+	err = os.WriteFile(*output, out, 0664)
 	if err != nil {
-		fmt.Println("Error while writing json file:")
-		exitUsage(err)
-	}
-	err = os.WriteFile("../files/out2.json", out2, 0664)
-	if err != nil {
-		fmt.Println("Error while writing njson file:")
+		fmt.Println("Error while writing output file:")
 		exitUsage(err)
 	}
 
@@ -74,7 +111,7 @@ func exitUsage(err error) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Printf("%s <file_to_read>\n", filepath.Base(os.Args[0]))
+	flag.Usage()
 
 	os.Exit(1)
 }
