@@ -27,31 +27,34 @@ var (
 )
 
 func init() {
-	input = flag.String("file", "", "The input file to read")
-	inputType = flag.String("inType", "", "The filetype of input file")
-	output = flag.String("out", "", "The file to write the output to")
-	outputType = flag.String("outType", "", "The filetype of output file")
+	input = flag.String("file", "", "The input file to read. If ommitted, file is read from stdin.")
+	inputType = flag.String("inType", fileTypeNBT, "The filetype of input file.")
+	output = flag.String("out", "", "The file to write the output to. If ommitted, output is written to stdout.")
+	outputType = flag.String("outType", fileTypeSNBT, "The filetype of output file.")
 }
 
 func main() {
 	flag.Parse()
-	if *input == "" || *inputType == "" || *outputType == "" {
-		exitUsage(nil)
-	}
 
 	*inputType = strings.ToLower(*inputType)
 	*outputType = strings.ToLower(*outputType)
 
-	if *input != "" && *inputType != fileTypeNBT {
+	if *inputType != fileTypeNBT {
 		exitUsage(fmt.Errorf("unknown or unsupported input type '%s'", *inputType))
 	}
-	if *output != "" && *outputType != fileTypeJSON && *outputType != fileTypeNJSON && *outputType != fileTypeSNBT {
+	if *outputType != fileTypeJSON && *outputType != fileTypeNJSON && *outputType != fileTypeSNBT {
 		exitUsage(fmt.Errorf("unknown or unsupported output type '%s'", *inputType))
 	}
 
-	file, err := os.Open(*input)
-	if err != nil {
-		exitUsage(err)
+	var file *os.File
+	var err error
+	if *input == "" {
+		file = os.Stdin
+	} else {
+		file, err = os.Open(*input)
+		if err != nil {
+			exitUsage(err)
+		}
 	}
 
 	nbt, err := nbtreader.New(file)
