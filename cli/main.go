@@ -20,14 +20,12 @@ const (
 )
 
 var (
-	input      *string
 	inputType  *string
 	output     *string
 	outputType *string
 )
 
 func init() {
-	input = flag.String("file", "", "The input file to read. If ommitted, file is read from stdin.")
 	inputType = flag.String("inType", fileTypeNBT, "The filetype of input file.")
 	output = flag.String("out", "", "The file to write the output to. If ommitted, output is written to stdout.")
 	outputType = flag.String("outType", fileTypeSNBT, "The filetype of output file.")
@@ -48,10 +46,10 @@ func main() {
 
 	var file *os.File
 	var err error
-	if *input == "" {
+	if flag.Arg(0) == "" {
 		file = os.Stdin
 	} else {
-		file, err = os.Open(*input)
+		file, err = os.Open(flag.Arg(0))
 		if err != nil {
 			exitUsage(err)
 		}
