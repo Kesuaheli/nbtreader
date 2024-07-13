@@ -40,22 +40,35 @@ func main() {
 	if *inputType != fileTypeNBT {
 		exitUsage(fmt.Errorf("unknown or unsupported input type '%s'", *inputType))
 	}
-	if *outputType != fileTypeJSON && *outputType != fileTypeNJSON && *outputType != fileTypeSNBT {
-		exitUsage(fmt.Errorf("unknown or unsupported output type '%s'", *inputType))
-	}
 
-	var file *os.File
-	var err error
-	if flag.Arg(0) == "" {
-		file = os.Stdin
+	var (
+		inFile  *os.File
+		outFile *os.File
+		err     error
+	)
+
+	if *output == "" {
+		outFile = os.Stdout
 	} else {
-		file, err = os.Open(flag.Arg(0))
+		outFile, err = os.Create(*output)
 		if err != nil {
 			exitUsage(err)
 		}
+		defer outFile.Close()
+	}
+	if flag.Arg(0) == "" {
+		inFile = os.Stdin
+	} else if flag.Arg(0) == *output {
+		inFile = outFile
+	} else {
+		inFile, err = os.Open(flag.Arg(0))
+		if err != nil {
+			exitUsage(err)
+		}
+		defer inFile.Close()
 	}
 
-	nbt, err := nbtreader.New(file)
+	nbt, err := nbtreader.New(inFile, outFile)
 	if err != nil {
 		fmt.Println("Error while reading file:")
 		exitUsage(err)
@@ -65,13 +78,21 @@ func main() {
 	switch *outputType {
 	case fileTypeJSON:
 		out, err = json.MarshalIndent(nbt, "", "	")
+		out = append(out, '\n')
+	case fileTypeNBT:
+		err = nbt.NBT(false)
+		if err != nil {
+			exitUsage(err)
+		}
+		return
 	case fileTypeNJSON:
 		out, err = nbtreader.MarshalNJSON(nbt)
+		out = append(out, '\n')
 	case fileTypeSNBT:
 		out = []byte(fmt.Sprint(nbt))
 		out = append(out, '\n')
 	default:
-		panic(fmt.Sprintf("unhandled output type '%s'", *outputType))
+		exitUsage(fmt.Errorf("unknown or unsupported output type '%s'", *outputType))
 	}
 
 	if err != nil {
@@ -79,12 +100,9 @@ func main() {
 		exitUsage(err)
 	}
 
-	if *output == "" {
-		fmt.Print(string(out))
-		return
-	}
+	fmt.Printf("len(out): %d\n", len(out))
 
-	err = os.WriteFile(*output, out, 0664)
+	_, err = outFile.Write(out)
 	if err != nil {
 		fmt.Println("Error while writing output file:")
 		exitUsage(err)

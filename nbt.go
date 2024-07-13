@@ -12,6 +12,7 @@ import (
 // NBT is a go struct representation of a Minecraft NBT object.
 type NBT struct {
 	rw *bufio.ReadWriter
+	w  io.Writer
 
 	rootName String
 	root     NbtTag
@@ -21,11 +22,12 @@ type NBT struct {
 // (if compressed).
 //
 // The resulting NBT object can be used to change or get single nbt values and compose it again.
-func New(r io.Reader) (nbt *NBT, err error) {
+func New(r io.Reader, w io.Writer) (nbt *NBT, err error) {
 	nbt = &NBT{
+		w: w,
 		rw: bufio.NewReadWriter(
 			bufio.NewReader(r),
-			bufio.NewWriterSize(bytes.NewBuffer(nil), 1024),
+			bufio.NewWriter(w),
 		),
 	}
 
@@ -79,22 +81,27 @@ func (nbt *NBT) parse() error {
 }
 
 // TODO: update Compose to io.Writer interface
-/* Outdated code
 // Compose takes the NBT object and composes it to the nbt binary format. It also will be compressed
 // using gzip. The data can be accessed using nbt.Data. Compose conveniently returns this Data
 // already.
-func (nbt *NBT) Compose() []byte {
-	nbt.buf = []byte{}
-	nbt.buf = pushByte(nbt.buf, nbt.root.Type())
-	nbt.buf = pushString(nbt.buf, nbt.rootName)
+func (nbt *NBT) NBT(compressed bool) error {
+	if compressed {
+		gzipWriter := gzip.NewWriter(nbt.rw)
+		nbt.rw.Writer = bufio.NewWriter(gzipWriter)
+	}
 
-	nbt.buf = append(nbt.buf, nbt.root.compose()...)
-	nbt.compress()
+	if err := pushByte(nbt.rw, nbt.root.Type()); err != nil {
+		return err
+	}
+	if err := pushString(nbt.rw, nbt.rootName); err != nil {
+		return err
+	}
 
-	nbt.Data = nbt.buf
-	return nbt.Data
+	if err := nbt.root.compose(nbt.rw); err != nil {
+		return err
+	}
+	return nbt.rw.Flush()
 }
-*/
 
 type compression = byte
 

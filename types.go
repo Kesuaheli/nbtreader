@@ -106,7 +106,7 @@ type NbtTag interface {
 	String() string
 	Type() TagType
 	parse(io.Reader) (NbtTag, error)
-	compose() []byte
+	compose(io.Writer) error
 }
 
 var indention int = 0
