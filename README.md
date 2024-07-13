@@ -101,7 +101,7 @@ Current valid values for `inType`:
 
 Current valid values for `outType`:
 - `JSON`
-- `NJSON` *([see spec](https://docs.google.com/spreadsheets/u/0/d/1Z0XVvyfzVSGstmpLSMKnwlxwYg8N2ZFl3Xmh0ZV0yZU/htmlview#gid=0))*
+- `NJSON` *([see spec](https://docs.google.com/document/d/1efDB9wyMLU4uWPTGY_nWNxBviS85iuicB8251kGiu2k/edit?usp=drivesdk))*
 - `SNBT` *(default if ommited)*
 
 Example:
