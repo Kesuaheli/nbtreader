@@ -90,6 +90,7 @@ Available flags are
 
 - `-inType <string>`
 - `-outType <string>`
+- `uncompressed`
 - `-out <string>`
 
 #### Flag `inType` and `outType`
@@ -101,6 +102,7 @@ Current valid values for `inType`:
 
 Current valid values for `outType`:
 - `JSON`
+- `NBT`
 - `NJSON` *([see spec](https://docs.google.com/document/d/1efDB9wyMLU4uWPTGY_nWNxBviS85iuicB8251kGiu2k/edit?usp=drivesdk))*
 - `SNBT` *(default if ommited)*
 
@@ -117,6 +119,16 @@ produces
 	"name": "Bananrama"
 }
 ```
+
+#### Flag `uncompressed`
+
+When using the `-outType NBT` option the output file will be written in compressed format using GZip. However, you can pass in the `-uncompressed` flag to write the NBT data in raw without compressing them.
+
+```sh
+nbtreader -outType NBT -uncompressed -out files/output_raw.nbt files/test.nbt
+```
+
+Using `-uncompressed` without setting the `outType` to `NBT` has no effect and is silently igonred.
 
 #### Flag `out`
 
