@@ -13,7 +13,7 @@ go build -o nbtreader ./cli
 PS: For Windows its recommended to add a `.exe` to the filename:
 
 ```bash
-go build -o nbtreader ./cli
+go build -o nbtreader.exe ./cli
 ```
 
 This produces an ready-to-use executable file named `nbtreader` (or `nbtreader.exe`). See [next Section](#usage) for using the command and its syntax.
