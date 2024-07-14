@@ -80,24 +80,33 @@ func (nbt *NBT) parse() error {
 	return nil
 }
 
-// TODO: update Compose to io.Writer interface
-// Compose takes the NBT object and composes it to the nbt binary format. It also will be compressed
-// using gzip. The data can be accessed using nbt.Data. Compose conveniently returns this Data
-// already.
-func (nbt *NBT) NBT(compressed bool) error {
+// NBT takes the NBT object and composes it to the nbt binary format. It also will be compressed
+// using gzip if specified. The data will be written to the underlying [io.Writer].
+func (nbt *NBT) NBT(compressed bool) (err error) {
 	if compressed {
-		gzipWriter := gzip.NewWriter(nbt.rw)
+		underlyingWriter := nbt.rw.Writer
+		gzipWriter := gzip.NewWriter(nbt.rw.Writer)
+		defer func() {
+			if err != nil {
+				return
+			}
+			if err = gzipWriter.Close(); err != nil {
+				return
+			}
+			nbt.rw.Writer = underlyingWriter
+			err = nbt.rw.Flush()
+		}()
 		nbt.rw.Writer = bufio.NewWriter(gzipWriter)
 	}
 
-	if err := pushByte(nbt.rw, nbt.root.Type()); err != nil {
+	if err = pushByte(nbt.rw, nbt.root.Type()); err != nil {
 		return err
 	}
-	if err := pushString(nbt.rw, nbt.rootName); err != nil {
+	if err = pushString(nbt.rw, nbt.rootName); err != nil {
 		return err
 	}
 
-	if err := nbt.root.compose(nbt.rw); err != nil {
+	if err = nbt.root.compose(nbt.rw); err != nil {
 		return err
 	}
 	return nbt.rw.Flush()
@@ -139,18 +148,6 @@ func (nbt *NBT) MarshalJSON() ([]byte, error) {
 func (nbt *NBT) MarshalNJSON() ([]byte, error) {
 	return MarshalNJSON(nbt.root)
 }
-
-// TODO: update compress to use io.Writer interface
-/* Outdated code
-func (nbt *NBT) compress() error {
-	buf := bytes.NewBuffer([]byte{})
-	gz := gzip.NewWriter(buf)
-	_, err := gz.Write(nbt.buf)
-	gz.Close()
-	nbt.buf = buf.Bytes()
-	return err
-}
-*/
 
 func (nbt NBT) getCompressionType() compression {
 	buf, err := nbt.rw.Peek(4)

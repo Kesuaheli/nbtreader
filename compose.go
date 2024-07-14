@@ -104,21 +104,21 @@ func pushByte[B Byte | int8 | TagType](w io.Writer, b B) error {
 
 func pushShort[S Short | int16 | uint8](w io.Writer, s S) error {
 	var buf [2]byte
-	binary.BigEndian.AppendUint16(buf[:], uint16(s))
+	binary.BigEndian.PutUint16(buf[:], uint16(s))
 	_, err := w.Write(buf[:])
 	return err
 }
 
 func pushInt[I Int | int32 | uint16 | int](w io.Writer, i I) error {
 	var buf [4]byte
-	binary.BigEndian.AppendUint32(buf[:], uint32(i))
+	binary.BigEndian.PutUint32(buf[:], uint32(i))
 	_, err := w.Write(buf[:])
 	return err
 }
 
 func pushLong[L Long | int64 | uint32 | int](w io.Writer, l L) error {
 	var buf [8]byte
-	binary.BigEndian.AppendUint64(buf[:], uint64(l))
+	binary.BigEndian.PutUint64(buf[:], uint64(l))
 	_, err := w.Write(buf[:])
 	return err
 }

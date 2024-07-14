@@ -20,15 +20,17 @@ const (
 )
 
 var (
-	inputType  *string
-	output     *string
-	outputType *string
+	inputType    *string
+	output       *string
+	outputType   *string
+	uncompressed *bool
 )
 
 func init() {
 	inputType = flag.String("inType", fileTypeNBT, "The filetype of input file.")
 	output = flag.String("out", "", "The file to write the output to. If ommitted, output is written to stdout.")
 	outputType = flag.String("outType", fileTypeSNBT, "The filetype of output file.")
+	uncompressed = flag.Bool("uncompressed", false, "If the output NBT data should be raw. Otherwise using GZip compression.")
 }
 
 func main() {
@@ -59,7 +61,7 @@ func main() {
 	if flag.Arg(0) == "" {
 		inFile = os.Stdin
 	} else if flag.Arg(0) == *output {
-		inFile = outFile
+		exitUsage(fmt.Errorf("flag '-out': Writing the output to the same file as reading from is not supportet.\nConsider using a temporarily file and rename is afterwards."))
 	} else {
 		inFile, err = os.Open(flag.Arg(0))
 		if err != nil {
@@ -80,7 +82,7 @@ func main() {
 		out, err = json.MarshalIndent(nbt, "", "	")
 		out = append(out, '\n')
 	case fileTypeNBT:
-		err = nbt.NBT(false)
+		err = nbt.NBT(!*uncompressed)
 		if err != nil {
 			exitUsage(err)
 		}
@@ -99,8 +101,6 @@ func main() {
 		fmt.Printf("Error while marshalling to output '%s':\n", *outputType)
 		exitUsage(err)
 	}
-
-	fmt.Printf("len(out): %d\n", len(out))
 
 	_, err = outFile.Write(out)
 	if err != nil {
