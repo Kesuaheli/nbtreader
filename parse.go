@@ -35,7 +35,7 @@ func parseType(r io.Reader, tagType TagType) (NbtTag, error) {
 	case Tag_Long_Array:
 		tag = LongArray{}
 	default:
-		return nil, fmt.Errorf("unknown type %02x", tagType)
+		return nil, fmt.Errorf("unknown type 0x%02x", byte(tagType))
 	}
 	return tag.parse(r)
 }

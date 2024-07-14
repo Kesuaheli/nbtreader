@@ -20,15 +20,17 @@ const (
 )
 
 var (
-	inputType  *string
-	output     *string
-	outputType *string
+	inputType    *string
+	output       *string
+	outputType   *string
+	uncompressed *bool
 )
 
 func init() {
 	inputType = flag.String("inType", fileTypeNBT, "The filetype of input file.")
 	output = flag.String("out", "", "The file to write the output to. If ommitted, output is written to stdout.")
 	outputType = flag.String("outType", fileTypeSNBT, "The filetype of output file.")
+	uncompressed = flag.Bool("uncompressed", false, "If the output NBT data should be raw. Otherwise using GZip compression.")
 }
 
 func main() {
@@ -40,22 +42,35 @@ func main() {
 	if *inputType != fileTypeNBT {
 		exitUsage(fmt.Errorf("unknown or unsupported input type '%s'", *inputType))
 	}
-	if *outputType != fileTypeJSON && *outputType != fileTypeNJSON && *outputType != fileTypeSNBT {
-		exitUsage(fmt.Errorf("unknown or unsupported output type '%s'", *inputType))
-	}
 
-	var file *os.File
-	var err error
-	if flag.Arg(0) == "" {
-		file = os.Stdin
+	var (
+		inFile  *os.File
+		outFile *os.File
+		err     error
+	)
+
+	if *output == "" {
+		outFile = os.Stdout
 	} else {
-		file, err = os.Open(flag.Arg(0))
+		outFile, err = os.Create(*output)
 		if err != nil {
 			exitUsage(err)
 		}
+		defer outFile.Close()
+	}
+	if flag.Arg(0) == "" {
+		inFile = os.Stdin
+	} else if flag.Arg(0) == *output {
+		exitUsage(fmt.Errorf("flag '-out': Writing the output to the same file as reading from is not supportet.\nConsider using a temporarily file and rename is afterwards."))
+	} else {
+		inFile, err = os.Open(flag.Arg(0))
+		if err != nil {
+			exitUsage(err)
+		}
+		defer inFile.Close()
 	}
 
-	nbt, err := nbtreader.New(file)
+	nbt, err := nbtreader.New(inFile, outFile)
 	if err != nil {
 		fmt.Println("Error while reading file:")
 		exitUsage(err)
@@ -65,13 +80,21 @@ func main() {
 	switch *outputType {
 	case fileTypeJSON:
 		out, err = json.MarshalIndent(nbt, "", "	")
+		out = append(out, '\n')
+	case fileTypeNBT:
+		err = nbt.NBT(!*uncompressed)
+		if err != nil {
+			exitUsage(err)
+		}
+		return
 	case fileTypeNJSON:
 		out, err = nbtreader.MarshalNJSON(nbt)
+		out = append(out, '\n')
 	case fileTypeSNBT:
 		out = []byte(fmt.Sprint(nbt))
 		out = append(out, '\n')
 	default:
-		panic(fmt.Sprintf("unhandled output type '%s'", *outputType))
+		exitUsage(fmt.Errorf("unknown or unsupported output type '%s'", *outputType))
 	}
 
 	if err != nil {
@@ -79,12 +102,7 @@ func main() {
 		exitUsage(err)
 	}
 
-	if *output == "" {
-		fmt.Print(string(out))
-		return
-	}
-
-	err = os.WriteFile(*output, out, 0664)
+	_, err = outFile.Write(out)
 	if err != nil {
 		fmt.Println("Error while writing output file:")
 		exitUsage(err)

@@ -2,101 +2,139 @@ package nbtreader
 
 import (
 	"encoding/binary"
+	"io"
 	"math"
 )
 
-func (t Byte) compose() []byte {
-	return pushByte([]byte{}, t)
+func (t Byte) compose(w io.Writer) error {
+	return pushByte(w, t)
 }
-func (t Short) compose() []byte {
-	return pushShort([]byte{}, t)
+func (t Short) compose(w io.Writer) error {
+	return pushShort(w, t)
 }
-func (t Int) compose() []byte {
-	return pushInt([]byte{}, t)
+func (t Int) compose(w io.Writer) error {
+	return pushInt(w, t)
 }
-func (t Long) compose() []byte {
-	return pushLong([]byte{}, t)
+func (t Long) compose(w io.Writer) error {
+	return pushLong(w, t)
 }
-func (t Float) compose() []byte {
-	return pushFloat([]byte{}, t)
+func (t Float) compose(w io.Writer) error {
+	return pushFloat(w, t)
 }
-func (t Double) compose() []byte {
-	return pushDouble([]byte{}, t)
+func (t Double) compose(w io.Writer) error {
+	return pushDouble(w, t)
 }
-func (t ByteArray) compose() []byte {
-	buf := pushInt([]byte{}, len(t))
-	for _, b := range t {
-		buf = pushByte(buf, b)
+func (t ByteArray) compose(w io.Writer) error {
+	if err := pushInt(w, len(t)); err != nil {
+		return err
 	}
-	return buf
+	for _, b := range t {
+		if err := pushByte(w, b); err != nil {
+			return err
+		}
+	}
+	return nil
 }
-func (t String) compose() []byte {
-	return pushString([]byte{}, t)
+func (t String) compose(w io.Writer) error {
+	return pushString(w, t)
 }
-func (t List) compose() []byte {
+func (t List) compose(w io.Writer) error {
 	itemCap := len(t.Elements)
 	if itemCap == 0 {
-		buf := pushByte([]byte{}, Tag_End)
-		return pushInt(buf, 0)
+		if err := pushByte(w, Tag_End); err != nil {
+			return err
+		}
+		return pushInt(w, 0)
 	}
 
-	buf := pushByte([]byte{}, t.TagType)
-	buf = pushInt(buf, itemCap)
+	if err := pushByte(w, t.TagType); err != nil {
+		return err
+	}
+	if err := pushInt(w, itemCap); err != nil {
+		return err
+	}
 	for _, entry := range t.Elements {
-		buf = append(buf, entry.compose()...)
+		if err := entry.compose(w); err != nil {
+			return err
+		}
 	}
-	return buf
+	return nil
 }
-func (t Compound) compose() []byte {
-	var data []byte
-	for name, tag := range t {
-		data = pushByte(data, tag.Value.Type())
-		data = pushString(data, name)
-		data = append(data, tag.Value.compose()...)
+func (t Compound) compose(w io.Writer) error {
+	for _, tag := range t.getOrdered() {
+		if err := pushByte(w, tag.Value.Type()); err != nil {
+			return err
+		}
+		if err := pushString(w, tag.Key); err != nil {
+			return nil
+		}
+		if err := tag.Value.compose(w); err != nil {
+			return err
+		}
 	}
-	data = pushByte(data, Tag_End)
-	return data
+	return pushByte(w, Tag_End)
 }
-func (t IntArray) compose() []byte {
-	buf := pushInt([]byte{}, len(t))
+func (t IntArray) compose(w io.Writer) error {
+	if err := pushInt(w, len(t)); err != nil {
+		return err
+	}
 	for _, i := range t {
-		buf = pushInt(buf, i)
+		if err := pushInt(w, i); err != nil {
+			return err
+		}
 	}
-	return buf
+	return nil
 }
-func (t LongArray) compose() []byte {
-	buf := pushInt([]byte{}, len(t))
+func (t LongArray) compose(w io.Writer) error {
+	if err := pushInt(w, len(t)); err != nil {
+		return err
+	}
 	for _, l := range t {
-		buf = pushLong(buf, l)
+		if err := pushLong(w, l); err != nil {
+			return err
+		}
 	}
-	return buf
+	return nil
 }
 
-func pushByte[B Byte | byte | int8 | TagType](data []byte, b B) []byte {
-	return append(data, byte(b))
+func pushByte[B Byte | int8 | TagType](w io.Writer, b B) error {
+	_, err := w.Write([]byte{byte(b)})
+	return err
 }
 
-func pushShort[S Short | int16 | uint16](data []byte, s S) []byte {
-	return binary.BigEndian.AppendUint16(data, uint16(s))
+func pushShort[S Short | int16 | uint8](w io.Writer, s S) error {
+	var buf [2]byte
+	binary.BigEndian.PutUint16(buf[:], uint16(s))
+	_, err := w.Write(buf[:])
+	return err
 }
 
-func pushInt[I Int | int32 | uint32 | int](data []byte, i I) []byte {
-	return binary.BigEndian.AppendUint32(data, uint32(i))
+func pushInt[I Int | int32 | uint16 | int](w io.Writer, i I) error {
+	var buf [4]byte
+	binary.BigEndian.PutUint32(buf[:], uint32(i))
+	_, err := w.Write(buf[:])
+	return err
 }
 
-func pushLong[L Long | int64 | uint64 | int](data []byte, l L) []byte {
-	return binary.BigEndian.AppendUint64(data, uint64(l))
+func pushLong[L Long | int64 | uint32 | int](w io.Writer, l L) error {
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], uint64(l))
+	_, err := w.Write(buf[:])
+	return err
 }
 
-func pushFloat[F Float | float32](data []byte, f F) []byte {
-	return pushInt(data, Int(math.Float32bits(float32(f))))
+func pushFloat[F Float | float32](w io.Writer, f F) error {
+	return pushInt(w, Int(math.Float32bits(float32(f))))
 }
 
-func pushDouble[D Double | float64](data []byte, d D) []byte {
-	return pushLong(data, Long(math.Float64bits(float64(d))))
+func pushDouble[D Double | float64](w io.Writer, d D) error {
+	return pushLong(w, Long(math.Float64bits(float64(d))))
 }
 
-func pushString(b []byte, s String) []byte {
-	b = pushShort(b, s.Len())
-	return append(b, []byte(s)...)
+func pushString(w io.Writer, s String) error {
+	if err := pushShort(w, s.Len()); err != nil {
+		return err
+	}
+	_, err := w.Write([]byte(s))
+	return err
 }
