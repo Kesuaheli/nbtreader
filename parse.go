@@ -176,25 +176,25 @@ func (t LongArray) parse(r io.Reader) (NbtTag, error) {
 
 func popByte(r io.Reader) (Byte, error) {
 	var buf [1]byte
-	_, err := r.Read(buf[:])
+	_, err := io.ReadFull(r, buf[:])
 	return Byte(buf[0]), err
 }
 
 func popShort(r io.Reader) (Short, error) {
 	var buf [2]byte
-	_, err := r.Read(buf[:])
+	_, err := io.ReadFull(r, buf[:])
 	return Short(binary.BigEndian.Uint16(buf[:])), err
 }
 
 func popInt(r io.Reader) (Int, error) {
 	var buf [4]byte
-	_, err := r.Read(buf[:])
+	_, err := io.ReadFull(r, buf[:])
 	return Int(binary.BigEndian.Uint32(buf[:])), err
 }
 
 func popLong(r io.Reader) (Long, error) {
 	var buf [8]byte
-	_, err := r.Read(buf[:])
+	_, err := io.ReadFull(r, buf[:])
 	return Long(binary.BigEndian.Uint64(buf[:])), err
 }
 
@@ -217,6 +217,6 @@ func popString(r io.Reader) (String, error) {
 	}
 
 	p := make([]byte, lenName)
-	_, err = r.Read(p)
+	_, err = io.ReadFull(r, p)
 	return String(p), err
 }
