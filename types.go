@@ -251,15 +251,32 @@ type List struct {
 }
 
 func (t List) String() string {
-	var entriesString string
+	var entriesString, indentation, indentationEnd string
+
+	if t.Type() == Tag_List || t.Type() == Tag_Compound {
+		indentationEnd = indent()
+		indentIncr()
+		indentation = indent()
+		defer indentDecr()
+	}
+
 	for i, entry := range t.Elements {
-		if i == 0 {
-			entriesString = entry.String()
+		if i != 0 {
+			entriesString += ","
+			if indentation == "" {
+				entriesString += " "
+			}
+		}
+		entriesString += indentation
+
+		compound, isCompound := entry.(Compound)
+		if compoundEntry, emptyKey := compound[""]; isCompound && emptyKey && len(compound) == 1 {
+			entriesString += compoundEntry.Value.String()
 		} else {
-			entriesString = entriesString + ", " + entry.String()
+			entriesString += entry.String()
 		}
 	}
-	return fmt.Sprintf("[%s]", entriesString)
+	return fmt.Sprintf("[%s%s]", entriesString, indentationEnd)
 }
 
 func (t List) Type() TagType {

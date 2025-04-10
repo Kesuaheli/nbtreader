@@ -54,6 +54,7 @@ func main() {
 	} else {
 		outFile, err = os.Create(*output)
 		if err != nil {
+			fmt.Println("Error while creating output file:")
 			exitUsage(err)
 		}
 		defer outFile.Close()
