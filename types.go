@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"strings"
 )
 
@@ -323,6 +324,20 @@ func (t Compound) getOrdered() []orderedCompound {
 	ordered := make([]orderedCompound, len(t))
 	for k, v := range t {
 		ordered[v.Index] = orderedCompound{k, v.Value}
+	}
+	return ordered
+}
+
+func (t Compound) getSorted() []orderedCompound {
+	keys := make([]String, 0, len(t))
+	for s := range t {
+		keys = append(keys, s)
+	}
+	slices.Sort(keys)
+
+	ordered := make([]orderedCompound, 0, len(t))
+	for _, k := range keys {
+		ordered = append(ordered, orderedCompound{k, t[k].Value})
 	}
 	return ordered
 }
