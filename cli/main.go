@@ -71,7 +71,7 @@ func main() {
 		defer inFile.Close()
 	}
 
-	nbt, err := nbtreader.New(inFile, outFile)
+	nbt, err := nbtreader.New(inFile, outFile, false)
 	if err != nil {
 		fmt.Println("Error while reading file:")
 		exitUsage(err)

@@ -16,19 +16,22 @@ type NBT struct {
 
 	rootName String
 	root     NbtTag
+
+	isNetwork bool
 }
 
 // New creates a new NBT object. The given data will be completely parsed, including decompression
 // (if compressed).
 //
 // The resulting NBT object can be used to change or get single nbt values and compose it again.
-func New(r io.Reader, w io.Writer) (nbt *NBT, err error) {
+func New(r io.Reader, w io.Writer, isNetwork bool) (nbt *NBT, err error) {
 	nbt = &NBT{
 		w: w,
 		rw: bufio.NewReadWriter(
 			bufio.NewReader(r),
 			bufio.NewWriter(w),
 		),
+		isNetwork: isNetwork,
 	}
 
 	err = nbt.parse()
@@ -58,13 +61,17 @@ func (nbt *NBT) parse() error {
 		nbt.root = Compound{}
 	case Tag_List:
 		nbt.root = List{}
+	case Tag_String:
+		nbt.root = String("")
 	default:
 		return fmt.Errorf("nbt: found invalid root tag: %s", rootType)
 	}
 
-	nbt.rootName, err = popString(nbt.rw)
-	if err != nil {
-		return fmt.Errorf("nbt: %v", err)
+	if !nbt.isNetwork {
+		nbt.rootName, err = popString(nbt.rw)
+		if err != nil {
+			return fmt.Errorf("nbt: %v", err)
+		}
 	}
 	nbt.root, err = nbt.root.parse(nbt.rw)
 	if err != nil {
@@ -110,6 +117,12 @@ func (nbt *NBT) NBT(compressed bool) (err error) {
 		return err
 	}
 	return nbt.rw.Flush()
+}
+
+// WriteNBT takes the NBT object and composes it to the nbt binary format.
+func WriteNBT(w io.Writer, nbt NbtTag) {
+	w.Write([]byte{byte(nbt.Type())})
+	nbt.compose(w)
 }
 
 type compression = byte
