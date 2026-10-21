@@ -44,6 +44,11 @@ func (nbt NBT) String() string {
 	return fmt.Sprint(nbt.root)
 }
 
+// Root returns the internal root tag.
+func (nbt *NBT) Root() NbtTag {
+	return nbt.root
+}
+
 func (nbt *NBT) parse() error {
 	err := nbt.decompress()
 	if err != nil {
